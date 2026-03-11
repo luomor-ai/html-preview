@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HTML 在线预览器</title>
-  <script src="./vue.global.prod.min.js"></script>
-  <link href="./style.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-base: #0d0e14;
@@ -827,17 +827,6 @@ const EXAMPLES = [
   }
 ];
 
-// if there is argument ?xlab={id} in URL, invoke fetchFromApi when open the page
-if (window.location.search.includes('xlab=')) {
-  window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    let id = urlParams.get('xlab');
-    app.apiUrl = "https://xlab.ai-space.net/api/article/preview/" + id;
-    app.apiFieldPath = "data.content";
-    app.fetchFromApi();
-  });
-}
 createApp({
   setup() {
     const code = ref(DEFAULT_CODE);
@@ -1058,8 +1047,40 @@ createApp({
       }
     }
 
+    async function fetchXlabArticle(id) {
+      apiFetching.value = true;
+      apiStatus.value = { type: 'loading', msg: `正在加载文章 #${id}...` };
+      apiUrl.value = `https://xlab.ai-space.net/api/article/preview/${id}`;
+      apiFieldPath.value = 'data.content';
+      try {
+        const res = await fetch(`https://xlab.ai-space.net/api/article/preview/${id}`);
+        const json = await res.json();
+        const html = getByPath(json, 'data.content');
+        if (typeof html === 'string' && html.trim()) {
+          code.value = html;
+          apiStatus.value = { type: 'ok', msg: `✓ 文章 #${id} 加载成功 · ${html.length} 字符` };
+          showToast(`文章 #${id} 已加载`, 'success');
+        } else {
+          apiStatus.value = { type: 'err', msg: `✗ 未找到 data.content 字段` };
+          showToast('内容字段为空或不存在', 'error');
+        }
+      } catch (e) {
+        apiStatus.value = { type: 'err', msg: `✗ ${e.message}` };
+        showToast('加载失败：' + e.message, 'error');
+      } finally {
+        apiFetching.value = false;
+        nextTick(() => setTimeout(runCode, 80));
+      }
+    }
+
     onMounted(() => {
-      nextTick(() => setTimeout(runCode, 80));
+      const params = new URLSearchParams(window.location.search);
+      const xlabId = params.get('xlab');
+      if (xlabId) {
+        fetchXlabArticle(xlabId);
+      } else {
+        nextTick(() => setTimeout(runCode, 80));
+      }
     });
 
     watch(activeTab, () => {
