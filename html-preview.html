@@ -827,6 +827,17 @@ const EXAMPLES = [
   }
 ];
 
+// if there is argument ?xlab={id} in URL, invoke fetchFromApi when open the page
+if (window.location.search.includes('xlab=')) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    let id = urlParams.get('xlab');
+    app.apiUrl = "https://xlab.ai-space.net/api/article/preview/" + id;
+    app.apiFieldPath = "data.content";
+    app.fetchFromApi();
+  });
+}
 createApp({
   setup() {
     const code = ref(DEFAULT_CODE);
