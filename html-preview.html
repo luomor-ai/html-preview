@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HTML 在线预览器</title>
-  <script src="./vue.global.prod.min.js"></script>
-  <link href="./style.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-base: #0d0e14;
@@ -642,7 +642,7 @@
         <iframe
           ref="previewFrame"
           :class="`frame-${device}`"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+          referrerpolicy="no-referrer"
         ></iframe>
       </div>
     </div>
@@ -866,13 +866,20 @@ createApp({
       }, duration);
     }
 
+    const INJECT_STYLE = '<style data-injected>img,video,iframe,table{max-width:100%!important;height:auto;box-sizing:border-box;}body{overflow-x:hidden;}</style>';
+    function injectStyle(html) {
+      if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, INJECT_STYLE + '</head>');
+      if (/<body/i.test(html)) return html.replace(/<body/i, INJECT_STYLE + '<body');
+      return INJECT_STYLE + html;
+    }
+    let currentBlobUrl = null;
     function runCode() {
       if (!previewFrame.value) return;
       try {
-        const doc = previewFrame.value.contentDocument || previewFrame.value.contentWindow.document;
-        doc.open();
-        doc.write(code.value);
-        doc.close();
+        if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+        const blob = new Blob([injectStyle(code.value)], { type: 'text/html; charset=utf-8' });
+        currentBlobUrl = URL.createObjectURL(blob);
+        previewFrame.value.src = currentBlobUrl;
         hasErrors.value = false;
       } catch (e) {
         hasErrors.value = true;
@@ -967,7 +974,7 @@ createApp({
     }
 
     function downloadHtml() {
-      const blob = new Blob([code.value], { type: 'text/html' });
+      const blob = new Blob([code.value], { type: 'text/html; charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'index.html';
@@ -976,8 +983,11 @@ createApp({
     }
 
     function openInNewTab() {
-      const blob = new Blob([code.value], { type: 'text/html' });
-      window.open(URL.createObjectURL(blob), '_blank');
+      const blob = new Blob([code.value], { type: 'text/html; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Delay revoke to allow tab to load
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
 
     function loadExample(ex) {
@@ -1038,13 +1048,11 @@ createApp({
     }
 
     onMounted(() => {
-      nextTick(() => {
-        runCode();
-      });
+      nextTick(() => setTimeout(runCode, 80));
     });
 
     watch(activeTab, () => {
-      nextTick(runCode);
+      nextTick(() => setTimeout(runCode, 50));
     });
 
     return {
