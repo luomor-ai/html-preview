@@ -48,6 +48,14 @@ export default {
       return this.modelValue.length
     }
   },
+  watch: {
+    modelValue() {
+      // Update textarea value when prop changes
+      if (this.$refs.editor) {
+        this.$refs.editor.value = this.modelValue
+      }
+    }
+  },
   methods: {
     onInput(e) {
       this.$emit('update:modelValue', e.target.value)
@@ -89,6 +97,10 @@ export default {
   },
   mounted() {
     this.updateCursor()
+    // Set initial value
+    if (this.$refs.editor && this.modelValue) {
+      this.$refs.editor.value = this.modelValue
+    }
   }
 }
 </script>
