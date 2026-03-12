@@ -12,7 +12,7 @@
       </div>
       <textarea
         ref="editor"
-        :value="modelValue"
+        :value="code"
         @input="onInput"
         @scroll="syncScroll"
         @keydown="onKeyDown"
@@ -31,9 +31,9 @@
 export default {
   name: 'EditorPane',
   props: {
-    modelValue: { type: String, default: '' }
+    code: { type: String, default: '' }
   },
-  emits: ['update:modelValue', 'run', 'format', 'copy', 'clear', 'download'],
+  emits: ['update:code', 'run', 'format', 'copy', 'clear', 'download'],
   data() {
     return {
       cursorLine: 1,
@@ -42,23 +42,23 @@ export default {
   },
   computed: {
     lineCount() {
-      return this.modelValue.split('\n').length
+      return this.code.split('\n').length
     },
     charCount() {
-      return this.modelValue.length
+      return this.code.length
     }
   },
   watch: {
-    modelValue() {
+    code() {
       // Update textarea value when prop changes
-      if (this.$refs.editor) {
-        this.$refs.editor.value = this.modelValue
+      if (this.$refs.editor && this.$refs.editor.value !== this.code) {
+        this.$refs.editor.value = this.code
       }
     }
   },
   methods: {
     onInput(e) {
-      this.$emit('update:modelValue', e.target.value)
+      this.$emit('update:code', e.target.value)
       this.$emit('run')
     },
     syncScroll() {
@@ -78,9 +78,9 @@ export default {
         e.preventDefault()
         const start = this.$refs.editor.selectionStart
         const end = this.$refs.editor.selectionEnd
-        const val = this.modelValue
+        const val = this.code
         const newVal = val.substring(0, start) + '  ' + val.substring(end)
-        this.$emit('update:modelValue', newVal)
+        this.$emit('update:code', newVal)
         this.$nextTick(() => {
           this.$refs.editor.selectionStart = this.$refs.editor.selectionEnd = start + 2
         })
@@ -98,8 +98,8 @@ export default {
   mounted() {
     this.updateCursor()
     // Set initial value
-    if (this.$refs.editor && this.modelValue) {
-      this.$refs.editor.value = this.modelValue
+    if (this.$refs.editor && this.code) {
+      this.$refs.editor.value = this.code
     }
   }
 }
