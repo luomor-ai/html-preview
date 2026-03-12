@@ -4,53 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HTML 在线预览器 (HTML Online Previewer) - A single-page Vue.js application for previewing and editing HTML code with live preview.
+HTML 在线预览器 (HTML Online Previewer) - A Vue 3 + Vite application for editing and previewing HTML code with live preview.
 
-## Architecture
+## Tech Stack
 
-- **Single HTML file application**: `html-preview.html` contains all HTML, CSS, and JavaScript
-- **Vue.js 3**: Uses global build (`vue.global.prod.min.js`) loaded via script tag
-- **No build system**: Static files served directly, no npm/package.json
-- **Fonts**: JetBrains Mono (code) and Space Grotesk (UI) from local woff2 files
+- **Vue 3** - Composition API with `<script>` setup pattern
+- **Vite** - Build tool and dev server
+- **CSS Variables** - Custom theme system for dark mode UI
 
-## File Structure
+## Commands
+
+```bash
+npm run dev      # Start development server on port 5173
+npm run build    # Build for production
+npm run preview  # Preview production build
+```
+
+## Project Structure
 
 ```
 html-preview/
-├── html-preview.html    # Main application (Vue.js SPA, ~50KB)
-├── style.css            # Font definitions (JetBrains Mono, Space Grotesk)
-├── vue.global.prod.min.js  # Vue 3 production build
-├── images/              # Screenshots
-└── README.md            # Project readme with screenshot
+├── src/
+│   ├── main.js              # App entry point
+│   ├── App.vue              # Root component
+│   ├── composables/
+│   │   └── useAppLogic.js   # Core application logic
+│   ├── components/
+│   │   ├── TopBar.vue       # Top navigation bar
+│   │   ├── Sidebar.vue      # Left sidebar
+│   │   ├── ApiPanel.vue     # API fetch panel
+│   │   ├── EditorPane.vue   # Code editor with line numbers
+│   │   ├── PreviewPane.vue  # Preview iframe
+│   │   ├── StatusBar.vue    # Bottom status bar
+│   │   ├── ExamplesModal.vue # Example templates modal
+│   │   └── Toast.vue        # Toast notifications
+│   └── styles/
+│       └── global.css       # Font definitions and CSS variables
+├── public/                  # Static assets (fonts)
+├── index.html               # HTML entry point
+├── vite.config.js           # Vite configuration
+└── package.json
 ```
 
-## Key Features
+## Architecture
 
-- **Code Editor**: Custom textarea-based editor with line numbers and syntax highlighting overlay
-- **Live Preview**: Renders HTML in iframe with injected responsive styles
-- **API Fetch Panel**: Fetch content from arbitrary URLs or XLab article API
-- **Template System**: Pre-built HTML/CSS/JS example templates
-- **Dark Theme UI**: VS Code-inspired design with custom CSS variables
+### State Management
+All application state is managed in `src/composables/useAppLogic.js`:
+- `code` - Editor content (reactive)
+- `activeTab` - Layout mode: 'editor', 'split', 'preview'
+- `device` - Preview device: 'desktop', 'tablet', 'mobile'
+- API state: `apiUrl`, `apiMethod`, `apiHeaders`, `apiBody`, `apiFieldPath`
+- UI state: `showExamples`, `toasts`, `hasErrors`, `autoRunEnabled`
 
-## Vue Application Structure (in html-preview.html)
+### Component Communication
+- Parent (App.vue) holds all state via `useAppLogic`
+- Children receive props and emit events for updates
+- Two-way binding via `v-model` pattern for inputs
 
-Main reactive state:
-- `code` - Editor content
-- `activeTab` - Layout mode ('editor-preview', 'editor', 'preview')
-- `codePath` - Current file path for download naming
-- `apiUrl`, `apiMethod`, `apiHeaders` - API fetch configuration
-- `fetchStatus` - Loading/success/error states
+### Key Features
+- **Live Preview**: Auto-renders HTML to iframe on code change (debounced 600ms)
+- **API Fetch**: Fetch HTML from any URL, supports JSON path extraction
+- **XLab Integration**: Load articles via `?xlab=<id>` query param
+- **Code Editor**: Tab indentation, line numbers, cursor tracking
+- **Responsive Preview**: Desktop/Tablet/Mobile device modes
 
-Core functions:
-- `runCode()` - Renders code to preview iframe
-- `syncLineNumbers()` / `syncScroll()` - Editor UX
-- `fetchFromApi()` - Generic HTTP client
-- `fetchXlabArticle(id)` - XLab CMS article loader
+## Adding Features
 
-## Common Operations
+1. **New state**: Add to `useAppLogic.js` and expose in return statement
+2. **New component**: Create in `src/components/`, import in App.vue
+3. **New styles**: Add CSS variables to `src/styles/global.css`
 
-**Preview locally**: Open `html-preview.html` in a browser (no server required)
+## Legacy Files
 
-**Edit the app**: Modify `html-preview.html` directly - Vue template and logic are inline
-
-**Add features**: All code is in the single HTML file under `<script>` tag
+The original `html-preview.html` single-file version is kept for reference but is no longer the source of truth.
