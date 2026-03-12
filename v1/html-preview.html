@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HTML 在线预览器</title>
+  <script src="./vue.global.prod.min.js"></script>
+  <link href="./style.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base: #0d0e14;
+      --bg-panel: #13141c;
+      --bg-sidebar: #0f1018;
+      --bg-editor: #11121a;
+      --bg-hover: #1c1e2a;
+      --bg-active: #1f2133;
+      --border: #252736;
+      --border-light: #2e3048;
+      --accent: #7c6aff;
+      --accent-glow: rgba(124, 106, 255, 0.25);
+      --accent-2: #00d4aa;
+      --accent-3: #ff6b6b;
+      --text-primary: #e8eaf0;
+      --text-secondary: #8b8fa8;
+      --text-muted: #555872;
+      --success: #2ecc71;
+      --warning: #f39c12;
+      --error: #e74c3c;
+      --line-num: #3a3d55;
+      --scrollbar: #252736;
+      --scrollbar-thumb: #3a3d55;
+      --font-code: 'JetBrains Mono', monospace;
+      --font-ui: 'Space Grotesk', sans-serif;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      height: 48px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 100;
+    }
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+    .topbar-tabs { display: flex; gap: 2px; flex: 1; }
+    .tab-btn {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .tab-btn.active { background: var(--bg-active); color: var(--text-primary); }
+    .tab-btn svg { opacity: 0.7; }
+    .topbar-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+    .icon-btn {
+      width: 30px; height: 30px;
+      border-radius: 6px; border: none;
+      background: transparent; color: var(--text-secondary);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; font-size: 13px;
+    }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .run-btn {
+      padding: 6px 14px;
+      border-radius: 6px; border: none;
+      background: var(--accent);
+      color: #fff; font-family: var(--font-ui);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: all 0.18s;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+    .run-btn:hover {
+      background: #8f7fff;
+      box-shadow: 0 0 16px 4px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+    .run-btn:active { transform: translateY(0); }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-section { padding: 8px; }
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 8px 8px 4px;
+    }
+    .side-btn {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px; border: none;
+      background: transparent; color: var(--text-secondary);
+      font-family: var(--font-ui); font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: all 0.15s; text-align: left;
+    }
+    .side-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .side-btn svg { flex-shrink: 0; }
+    .side-btn .kbd {
+      margin-left: auto; font-size: 10px;
+      color: var(--text-muted); background: var(--bg-active);
+      padding: 1px 5px; border-radius: 3px;
+    }
+    .sidebar-divider { height: 1px; background: var(--border); margin: 6px 8px; }
+
+    /* ── API FETCH PANEL ── */
+    .api-panel {
+      border-top: 1px solid var(--border);
+      padding: 12px;
+      background: var(--bg-sidebar);
+    }
+    .api-panel-title {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--accent-2); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .api-input-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .api-input {
+      flex: 1; padding: 7px 10px;
+      background: var(--bg-active); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary);
+      font-family: var(--font-code); font-size: 11px;
+      outline: none; transition: border-color 0.15s;
+    }
+    .api-input:focus { border-color: var(--accent); }
+    .api-input::placeholder { color: var(--text-muted); }
+    .method-sel {
+      padding: 7px 8px;
+      background: var(--bg-active); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--accent-2);
+      font-family: var(--font-code); font-size: 11px;
+      font-weight: 600; cursor: pointer; outline: none;
+    }
+    .fetch-btn {
+      width: 100%; padding: 8px;
+      border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-active); color: var(--accent-2);
+      font-family: var(--font-ui); font-size: 12px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 6px; transition: all 0.15s;
+    }
+    .fetch-btn:hover { background: rgba(0,212,170,0.1); border-color: var(--accent-2); }
+    .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .fetch-status {
+      font-size: 11px; margin-top: 6px; padding: 5px 8px;
+      border-radius: 5px; display: flex; align-items: center; gap: 5px;
+    }
+    .fetch-status.ok { background: rgba(46,204,113,0.1); color: var(--success); }
+    .fetch-status.err { background: rgba(231,76,60,0.1); color: var(--error); }
+    .fetch-status.loading { background: rgba(124,106,255,0.1); color: var(--accent); }
+
+    /* HEADERS EDITOR */
+    .headers-toggle {
+      font-size: 11px; color: var(--text-muted);
+      cursor: pointer; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .headers-toggle:hover { color: var(--text-secondary); }
+    .header-row { display: flex; gap: 4px; margin-bottom: 4px; }
+    .header-input {
+      flex: 1; padding: 5px 7px;
+      background: var(--bg-base); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text-primary);
+      font-family: var(--font-code); font-size: 10px; outline: none;
+    }
+    .del-btn {
+      width: 22px; height: 22px; margin-top: 2px;
+      border-radius: 4px; border: none;
+      background: transparent; color: var(--text-muted);
+      cursor: pointer; font-size: 14px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .del-btn:hover { background: rgba(231,76,60,0.2); color: var(--error); }
+    .add-header-btn {
+      font-size: 11px; color: var(--accent); background: none; border: none;
+      cursor: pointer; padding: 2px 0;
+    }
+    .add-header-btn:hover { color: #8f7fff; }
+
+    /* ── EDITOR AREA ── */
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+    }
+    .pane-header {
+      height: 38px;
+      padding: 0 12px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .pane-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green { background: #28c840; }
+    .pane-tag {
+      margin-left: auto; font-size: 11px;
+      color: var(--text-muted); background: var(--bg-active);
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    .editor-wrap {
+      flex: 1; overflow: hidden; position: relative;
+      display: flex;
+    }
+    .line-numbers {
+      width: 44px; flex-shrink: 0;
+      background: var(--bg-editor);
+      border-right: 1px solid var(--border);
+      padding: 12px 0;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      align-items: flex-end;
+      padding-right: 8px;
+    }
+    .ln {
+      font-family: var(--font-code);
+      font-size: 13px; line-height: 1.6;
+      color: var(--line-num);
+      user-select: none;
+    }
+    .ln.active { color: var(--accent); }
+    .editor-textarea {
+      flex: 1;
+      background: var(--bg-editor);
+      border: none; outline: none; resize: none;
+      color: var(--text-primary);
+      font-family: var(--font-code); font-size: 13px; line-height: 1.6;
+      padding: 12px; tab-size: 2;
+      overflow-y: auto;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .editor-textarea::selection { background: rgba(124,106,255,0.3); }
+
+    /* ── PREVIEW PANE ── */
+    .preview-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .preview-toolbar {
+      height: 38px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 12px; gap: 6px;
+      flex-shrink: 0;
+    }
+    .device-btn {
+      width: 28px; height: 26px;
+      border-radius: 5px; border: none;
+      background: transparent; color: var(--text-muted);
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 13px; transition: all 0.15s;
+    }
+    .device-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .device-btn.active { background: var(--bg-active); color: var(--accent); }
+    .preview-url {
+      flex: 1; padding: 4px 10px;
+      background: var(--bg-active); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-muted);
+      font-family: var(--font-code); font-size: 11px; outline: none;
+      cursor: default; user-select: none;
+    }
+    .preview-sep { width: 1px; height: 18px; background: var(--border); }
+    .refresh-btn {
+      width: 26px; height: 26px; border-radius: 5px; border: none;
+      background: transparent; color: var(--text-secondary);
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; transition: all 0.15s;
+    }
+    .refresh-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .preview-frame-wrap {
+      flex: 1; background: #fff; position: relative; overflow: hidden;
+      display: flex; align-items: flex-start; justify-content: center;
+      background: var(--bg-base);
+    }
+    .preview-frame-wrap.mobile { padding: 12px; align-items: center; }
+    .preview-frame-wrap.tablet { padding: 12px; align-items: flex-start; }
+    iframe {
+      border: none;
+      transition: all 0.3s ease;
+      background: #fff;
+    }
+    .frame-desktop { width: 100%; height: 100%; }
+    .frame-tablet { width: 768px; height: 100%; border-radius: 8px; box-shadow: 0 0 0 2px var(--border), 0 8px 32px rgba(0,0,0,0.4); }
+    .frame-mobile { width: 375px; height: 100%; border-radius: 12px; box-shadow: 0 0 0 2px var(--border), 0 8px 32px rgba(0,0,0,0.4); max-height: 680px; }
+
+    /* ── STATUS BAR ── */
+    .statusbar {
+      height: 24px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 16px;
+      font-family: var(--font-code); font-size: 11px;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    .status-item { display: flex; align-items: center; gap: 4px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .status-dot.warn { background: var(--warning); }
+    .status-sep { margin-left: auto; }
+
+    /* ── SCROLLBARS ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a4d65; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 480px; padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-title {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .modal-input {
+      width: 100%; padding: 9px 12px;
+      background: var(--bg-active); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary);
+      font-family: var(--font-code); font-size: 13px; outline: none;
+      margin-bottom: 12px; transition: border-color 0.15s;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-cancel {
+      padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-secondary);
+      font-family: var(--font-ui); font-size: 13px; cursor: pointer;
+    }
+    .modal-cancel:hover { background: var(--bg-hover); }
+    .modal-ok {
+      padding: 8px 16px; border-radius: 6px; border: none;
+      background: var(--accent); color: #fff;
+      font-family: var(--font-ui); font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .modal-ok:hover { background: #8f7fff; }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position: fixed; bottom: 40px; right: 20px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 9999;
+    }
+    .toast {
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      animation: slideIn 0.2s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.info { background: #1a1c2e; border: 1px solid var(--accent); color: var(--accent); }
+    .toast.success { background: #0e2019; border: 1px solid var(--success); color: var(--success); }
+    .toast.error { background: #200f0f; border: 1px solid var(--error); color: var(--error); }
+    @keyframes slideIn {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* SPINNING */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+
+    /* RESIZE HANDLE */
+    .resize-handle {
+      width: 4px; cursor: col-resize;
+      background: var(--border);
+      transition: background 0.15s;
+      flex-shrink: 0;
+      position: relative; z-index: 10;
+    }
+    .resize-handle:hover { background: var(--accent); }
+
+    /* Syntax highlighting colors - applied via JS */
+    .hl-tag { color: #ff7eb3; }
+    .hl-attr { color: #82aaff; }
+    .hl-string { color: #c3e88d; }
+    .hl-comment { color: #546e7a; font-style: italic; }
+    .hl-doctype { color: #c792ea; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-icon">&lt;/&gt;</div>
+      HTML Preview
+    </div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-tabs">
+      <button class="tab-btn" :class="{ active: activeTab==='editor' }" @click="activeTab='editor'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        编辑器
+      </button>
+      <button class="tab-btn" :class="{ active: activeTab==='split' }" @click="activeTab='split'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        分屏
+      </button>
+      <button class="tab-btn" :class="{ active: activeTab==='preview' }" @click="activeTab='preview'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        预览
+      </button>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" @click="formatCode" title="格式化">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>
+      </button>
+      <button class="icon-btn" @click="copyCode" title="复制">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+      <button class="icon-btn" @click="clearCode" title="清空">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+      <button class="icon-btn" @click="showExamples=true" title="示例">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </button>
+      <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+      <button class="run-btn" @click="runCode">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        运行
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">操作</div>
+        <button class="side-btn" @click="formatCode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>
+          格式化代码
+        </button>
+        <button class="side-btn" @click="copyCode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          复制代码
+        </button>
+        <button class="side-btn" @click="downloadHtml">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下载 HTML
+        </button>
+        <button class="side-btn" @click="openInNewTab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          新标签打开
+        </button>
+        <button class="side-btn" @click="clearCode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          清空代码
+        </button>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">示例模板</div>
+        <button class="side-btn" v-for="ex in examples" :key="ex.name" @click="loadExample(ex)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          {{ ex.name }}
+        </button>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- API FETCH PANEL -->
+      <div class="api-panel">
+        <div class="api-panel-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          API 获取
+        </div>
+        <div class="api-input-row">
+          <select class="method-sel" v-model="apiMethod">
+            <option>GET</option>
+            <option>POST</option>
+          </select>
+        </div>
+        <input class="api-input" v-model="apiUrl" placeholder="输入 API 接口地址..." style="width:100%;margin-bottom:8px" />
+
+        <!-- Headers toggle -->
+        <div class="headers-toggle" @click="showHeaders=!showHeaders">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline :points="showHeaders ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"/></svg>
+          请求头 ({{ apiHeaders.length }})
+        </div>
+        <div v-if="showHeaders">
+          <div class="header-row" v-for="(h,i) in apiHeaders" :key="i">
+            <input class="header-input" v-model="h.key" placeholder="Key" />
+            <input class="header-input" v-model="h.val" placeholder="Value" />
+            <button class="del-btn" @click="apiHeaders.splice(i,1)">×</button>
+          </div>
+          <button class="add-header-btn" @click="apiHeaders.push({key:'',val:''})">+ 添加请求头</button>
+        </div>
+
+        <!-- Body if POST -->
+        <div v-if="apiMethod==='POST'" style="margin-top:8px">
+          <textarea class="api-input" v-model="apiBody" placeholder='请求体 (JSON)...' style="width:100%;height:60px;resize:none;margin-bottom:6px"></textarea>
+        </div>
+
+        <!-- Response selector -->
+        <div style="margin:8px 0 6px;font-size:11px;color:var(--text-muted)">HTML 字段路径 (可选)</div>
+        <input class="api-input" v-model="apiFieldPath" placeholder="如: data.html 或 content" style="width:100%;margin-bottom:8px" />
+
+        <button class="fetch-btn" @click="fetchFromApi" :disabled="apiFetching">
+          <span v-if="apiFetching" class="spin">↻</span>
+          <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          {{ apiFetching ? '获取中...' : '获取 HTML' }}
+        </button>
+
+        <div v-if="apiStatus" class="fetch-status" :class="apiStatus.type">
+          <span>{{ apiStatus.msg }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDITOR PANE (hidden in preview-only mode) -->
+    <div class="editor-pane" v-if="activeTab !== 'preview'" :style="activeTab==='split' ? 'flex:1' : 'flex:2'">
+      <div class="pane-header">
+        <div class="pane-dot dot-red"></div>
+        <div class="pane-dot dot-yellow"></div>
+        <div class="pane-dot dot-green"></div>
+        <span style="margin-left:8px;color:var(--text-secondary)">index.html</span>
+        <span class="pane-tag">HTML</span>
+      </div>
+      <div class="editor-wrap">
+        <div class="line-numbers" ref="lineNumbers">
+          <span v-for="n in lineCount" :key="n" class="ln" :class="{active: n===cursorLine}">{{ n }}</span>
+        </div>
+        <textarea
+          class="editor-textarea"
+          ref="editor"
+          v-model="code"
+          @input="onInput"
+          @scroll="syncScroll"
+          @keydown="onKeyDown"
+          @click="updateCursor"
+          @keyup="updateCursor"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle" v-if="activeTab==='split'" @mousedown="startResize"></div>
+
+    <!-- PREVIEW PANE (hidden in editor-only mode) -->
+    <div class="preview-pane" v-if="activeTab !== 'editor'" :style="activeTab==='split' ? 'flex:1' : 'flex:1'">
+      <div class="preview-toolbar">
+        <button class="device-btn" :class="{active: device==='desktop'}" @click="device='desktop'" title="桌面">
+          🖥
+        </button>
+        <button class="device-btn" :class="{active: device==='tablet'}" @click="device='tablet'" title="平板">
+          📱
+        </button>
+        <button class="device-btn" :class="{active: device==='mobile'}" @click="device='mobile'" title="手机">
+          📲
+        </button>
+        <div style="width:1px;height:16px;background:var(--border);margin:0 4px"></div>
+        <div class="preview-url">preview://local</div>
+        <button class="refresh-btn" @click="runCode" title="刷新">↻</button>
+      </div>
+      <div class="preview-frame-wrap" :class="device">
+        <iframe
+          ref="previewFrame"
+          :class="`frame-${device}`"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="status-item">
+      <div class="status-dot" :class="{warn: hasErrors}"></div>
+      {{ hasErrors ? '有错误' : '就绪' }}
+    </div>
+    <div class="status-item">行 {{ cursorLine }} · 列 {{ cursorCol }}</div>
+    <div class="status-item">{{ lineCount }} 行</div>
+    <div class="status-item">{{ code.length }} 字符</div>
+    <div class="status-item status-sep">UTF-8</div>
+    <div class="status-item">HTML</div>
+    <div class="status-item">{{ autoRunEnabled ? '自动运行 ✓' : '手动运行' }}</div>
+  </div>
+
+  <!-- EXAMPLES MODAL -->
+  <div class="modal-overlay" v-if="showExamples" @click.self="showExamples=false">
+    <div class="modal">
+      <div class="modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        选择示例模板
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button v-for="ex in examples" :key="ex.name"
+          style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-active);color:var(--text-primary);font-family:var(--font-ui);font-size:13px;cursor:pointer;text-align:left;transition:all 0.15s"
+          @mouseenter="$event.target.style.borderColor='var(--accent)'"
+          @mouseleave="$event.target.style.borderColor='var(--border)'"
+          @click="loadExample(ex); showExamples=false">
+          <div style="font-weight:600;margin-bottom:3px">{{ ex.name }}</div>
+          <div style="color:var(--text-muted);font-size:12px">{{ ex.desc }}</div>
+        </button>
+      </div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="modal-cancel" @click="showExamples=false">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-wrap">
+    <div class="toast" :class="t.type" v-for="t in toasts" :key="t.id">{{ t.msg }}</div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+const DEFAULT_CODE = `<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的页面</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #f0f4f8;
+    }
+    h1 { color: #2563eb; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>👋 欢迎使用 HTML 在线预览器</h1>
+    <p>在左侧编辑器中输入你的 HTML 代码，实时预览效果。</p>
+    <p>也可以从 <strong>API 接口</strong> 获取 HTML 内容！</p>
+  </div>
+</body>
+</html>`;
+
+const EXAMPLES = [
+  {
+    name: '欢迎页面',
+    desc: '基础 HTML 结构示例',
+    code: DEFAULT_CODE
+  },
+  {
+    name: '卡片网格',
+    desc: '响应式卡片布局',
+    code: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  h1 { text-align:center; font-size:2rem; margin-bottom:2rem; background:linear-gradient(90deg,#818cf8,#38bdf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+  .card { background:#1e293b; border-radius:16px; padding:1.5rem; border:1px solid #334155; transition:transform 0.2s, box-shadow 0.2s; cursor:pointer; }
+  .card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(99,102,241,0.2); border-color:#6366f1; }
+  .card-icon { font-size:2rem; margin-bottom:0.8rem; }
+  .card h3 { font-size:1rem; margin-bottom:0.4rem; }
+  .card p { font-size:0.85rem; color:#94a3b8; }
+</style></head>
+<body>
+  <h1>✨ 卡片展示</h1>
+  <div class="grid">
+    <div class="card"><div class="card-icon">🚀</div><h3>快速部署</h3><p>一键部署到生产环境，简单高效。</p></div>
+    <div class="card"><div class="card-icon">🎨</div><h3>UI 设计</h3><p>精美的用户界面，提升体验。</p></div>
+    <div class="card"><div class="card-icon">⚡</div><h3>高性能</h3><p>优化的代码，极速加载。</p></div>
+    <div class="card"><div class="card-icon">🔒</div><h3>安全可靠</h3><p>多层安全保护，数据无忧。</p></div>
+    <div class="card"><div class="card-icon">📊</div><h3>数据分析</h3><p>实时数据洞察，智能决策。</p></div>
+    <div class="card"><div class="card-icon">🌍</div><h3>全球部署</h3><p>多地区服务器，低延迟访问。</p></div>
+  </div>
+</body></html>`
+  },
+  {
+    name: '登录表单',
+    desc: '精美的登录页面设计',
+    code: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui; background:linear-gradient(135deg,#667eea,#764ba2); min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:white; border-radius:20px; padding:40px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+  h2 { font-size:1.6rem; font-weight:700; margin-bottom:6px; color:#1a1a2e; }
+  p { color:#888; font-size:0.9rem; margin-bottom:28px; }
+  label { display:block; font-size:0.85rem; font-weight:600; color:#444; margin-bottom:6px; }
+  input { width:100%; padding:12px 14px; border:2px solid #e8e8e8; border-radius:10px; font-size:0.95rem; outline:none; transition:border-color 0.2s; margin-bottom:18px; }
+  input:focus { border-color:#667eea; }
+  button { width:100%; padding:13px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+  button:hover { opacity:0.9; }
+  .link { text-align:center; margin-top:16px; font-size:0.85rem; color:#888; }
+  .link a { color:#667eea; text-decoration:none; font-weight:600; }
+</style></head>
+<body>
+  <div class="card">
+    <h2>欢迎回来 👋</h2>
+    <p>请输入您的账号信息登录</p>
+    <label>邮箱地址</label>
+    <input type="email" placeholder="your@email.com" />
+    <label>密码</label>
+    <input type="password" placeholder="••••••••" />
+    <button>登 录</button>
+    <div class="link">还没有账号？<a href="#">立即注册</a></div>
+  </div>
+</body></html>`
+  },
+  {
+    name: '数据表格',
+    desc: '带样式的数据表格',
+    code: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  body { font-family:system-ui; padding:2rem; background:#f8fafc; }
+  h2 { color:#1e293b; margin-bottom:1rem; }
+  .table-wrap { background:white; border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+  table { width:100%; border-collapse:collapse; }
+  th { background:#1e293b; color:white; padding:14px 16px; text-align:left; font-size:0.85rem; letter-spacing:0.5px; }
+  td { padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:0.9rem; }
+  tr:last-child td { border:none; }
+  tr:hover td { background:#f8fafc; }
+  .badge { padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
+  .green { background:#dcfce7; color:#16a34a; }
+  .red { background:#fee2e2; color:#dc2626; }
+  .yellow { background:#fef9c3; color:#ca8a04; }
+</style></head>
+<body>
+  <h2>📊 用户数据表格</h2>
+  <div class="table-wrap">
+    <table>
+      <tr><th>姓名</th><th>邮箱</th><th>角色</th><th>状态</th><th>加入时间</th></tr>
+      <tr><td>张伟</td><td>zhang@example.com</td><td>管理员</td><td><span class="badge green">活跃</span></td><td>2023-01-15</td></tr>
+      <tr><td>李明</td><td>li@example.com</td><td>编辑</td><td><span class="badge green">活跃</span></td><td>2023-03-22</td></tr>
+      <tr><td>王芳</td><td>wang@example.com</td><td>访客</td><td><span class="badge yellow">待审核</span></td><td>2023-06-10</td></tr>
+      <tr><td>陈静</td><td>chen@example.com</td><td>用户</td><td><span class="badge red">已禁用</span></td><td>2023-08-05</td></tr>
+      <tr><td>刘洋</td><td>liu@example.com</td><td>编辑</td><td><span class="badge green">活跃</span></td><td>2023-11-30</td></tr>
+    </table>
+  </div>
+</body></html>`
+  }
+];
+
+createApp({
+  setup() {
+    const code = ref(DEFAULT_CODE);
+    const activeTab = ref('split');
+    const device = ref('mobile');
+    const editor = ref(null);
+    const previewFrame = ref(null);
+    const lineNumbers = ref(null);
+    const cursorLine = ref(1);
+    const cursorCol = ref(1);
+    const hasErrors = ref(false);
+    const autoRunEnabled = ref(true);
+    const showExamples = ref(false);
+    const toasts = ref([]);
+
+    // API fetch state
+    const apiUrl = ref('');
+    const apiMethod = ref('GET');
+    const apiHeaders = ref([]);
+    const apiBody = ref('');
+    const apiFieldPath = ref('');
+    const apiFetching = ref(false);
+    const apiStatus = ref(null);
+    const showHeaders = ref(false);
+
+    const examples = EXAMPLES;
+
+    let debounceTimer = null;
+
+    const lineCount = computed(() => code.value.split('\n').length);
+
+    function showToast(msg, type = 'info', duration = 2500) {
+      const id = Date.now();
+      toasts.value.push({ id, msg, type });
+      setTimeout(() => {
+        toasts.value = toasts.value.filter(t => t.id !== id);
+      }, duration);
+    }
+
+    const INJECT_STYLE = '<style data-injected>img,video,iframe,table{max-width:100%!important;height:auto;box-sizing:border-box;}body{overflow-x:hidden;}</style>';
+    function injectStyle(html) {
+      if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, INJECT_STYLE + '</head>');
+      if (/<body/i.test(html)) return html.replace(/<body/i, INJECT_STYLE + '<body');
+      return INJECT_STYLE + html;
+    }
+    let currentBlobUrl = null;
+    function runCode() {
+      if (!previewFrame.value) return;
+      try {
+        if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+        const blob = new Blob([injectStyle(code.value)], { type: 'text/html; charset=utf-8' });
+        currentBlobUrl = URL.createObjectURL(blob);
+        previewFrame.value.src = currentBlobUrl;
+        hasErrors.value = false;
+      } catch (e) {
+        hasErrors.value = true;
+      }
+    }
+
+    function onInput() {
+      if (autoRunEnabled.value) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runCode, 600);
+      }
+      syncLineNumbers();
+    }
+
+    function syncLineNumbers() {
+      nextTick(() => {
+        if (lineNumbers.value && editor.value) {
+          lineNumbers.value.scrollTop = editor.value.scrollTop;
+        }
+      });
+    }
+
+    function syncScroll() {
+      if (lineNumbers.value && editor.value) {
+        lineNumbers.value.scrollTop = editor.value.scrollTop;
+      }
+    }
+
+    function updateCursor() {
+      if (!editor.value) return;
+      const text = editor.value.value.substring(0, editor.value.selectionStart);
+      const lines = text.split('\n');
+      cursorLine.value = lines.length;
+      cursorCol.value = lines[lines.length - 1].length + 1;
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.value.selectionStart;
+        const end = editor.value.selectionEnd;
+        const val = code.value;
+        code.value = val.substring(0, start) + '  ' + val.substring(end);
+        nextTick(() => {
+          editor.value.selectionStart = editor.value.selectionEnd = start + 2;
+        });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runCode();
+        showToast('代码已运行', 'success');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        downloadHtml();
+      }
+    }
+
+    function formatCode() {
+      try {
+        // Basic indent formatter
+        let result = '';
+        let indent = 0;
+        const lines = code.value.split('\n');
+        const SELF_CLOSE = ['meta','link','br','hr','img','input','area','base','col','embed','param','source','track','wbr'];
+        lines.forEach(rawLine => {
+          const line = rawLine.trim();
+          if (!line) { result += '\n'; return; }
+          const isClose = line.startsWith('</');
+          const isSelfClose = SELF_CLOSE.some(t => line.toLowerCase().startsWith('<' + t));
+          const isOpen = line.startsWith('<') && !isClose && !isSelfClose && !line.startsWith('<!') && !line.startsWith('<?');
+          if (isClose) indent = Math.max(0, indent - 1);
+          result += '  '.repeat(indent) + line + '\n';
+          if (isOpen && !line.includes('</') && !line.endsWith('/>')) indent++;
+        });
+        code.value = result.trimEnd();
+        showToast('格式化完成', 'success');
+      } catch (e) {
+        showToast('格式化失败', 'error');
+      }
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(code.value).then(() => {
+        showToast('已复制到剪贴板', 'success');
+      }).catch(() => showToast('复制失败', 'error'));
+    }
+
+    function clearCode() {
+      code.value = '';
+      showToast('已清空', 'info');
+    }
+
+    function downloadHtml() {
+      const blob = new Blob([code.value], { type: 'text/html; charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'index.html';
+      a.click();
+      showToast('下载成功', 'success');
+    }
+
+    function openInNewTab() {
+      const blob = new Blob([code.value], { type: 'text/html; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Delay revoke to allow tab to load
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    function loadExample(ex) {
+      code.value = ex.code;
+      showToast(`已加载：${ex.name}`, 'info');
+      nextTick(runCode);
+    }
+
+    // Get nested field by dot path
+    function getByPath(obj, path) {
+      if (!path) return obj;
+      return path.split('.').reduce((o, k) => (o ? o[k] : undefined), obj);
+    }
+
+    async function fetchFromApi() {
+      if (!apiUrl.value.trim()) {
+        showToast('请输入 API 地址', 'error'); return;
+      }
+      apiFetching.value = true;
+      apiStatus.value = { type: 'loading', msg: '正在获取...' };
+      try {
+        const headers = {};
+        apiHeaders.value.forEach(h => { if (h.key) headers[h.key] = h.val; });
+
+        const opts = { method: apiMethod.value, headers };
+        if (apiMethod.value === 'POST' && apiBody.value) {
+          opts.body = apiBody.value;
+          headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+        }
+
+        const res = await fetch(apiUrl.value.trim(), opts);
+        const contentType = res.headers.get('content-type') || '';
+        let html = '';
+
+        if (contentType.includes('application/json')) {
+          const json = await res.json();
+          const extracted = getByPath(json, apiFieldPath.value.trim());
+          if (typeof extracted === 'string') {
+            html = extracted;
+          } else {
+            // Render JSON nicely
+            html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:monospace;background:#1e1e2e;color:#cdd6f4;padding:1rem;}</style></head><body><pre>${JSON.stringify(extracted ?? json, null, 2)}</pre></body></html>`;
+          }
+        } else {
+          html = await res.text();
+        }
+
+        code.value = html;
+        apiStatus.value = { type: 'ok', msg: `✓ ${res.status} ${res.statusText} · ${html.length} 字符` };
+        showToast('获取成功，已加载到编辑器', 'success');
+        nextTick(runCode);
+      } catch (e) {
+        apiStatus.value = { type: 'err', msg: `✗ ${e.message}` };
+        showToast('请求失败：' + e.message, 'error');
+      } finally {
+        apiFetching.value = false;
+      }
+    }
+
+    async function fetchXlabArticle(id) {
+      apiFetching.value = true;
+      apiStatus.value = { type: 'loading', msg: `正在加载文章 #${id}...` };
+      apiUrl.value = `https://xlab.ai-space.net/api/article/preview/${id}`;
+      apiFieldPath.value = 'data.content';
+      try {
+        const res = await fetch(`https://xlab.ai-space.net/api/article/preview/${id}`);
+        const json = await res.json();
+        const html = getByPath(json, 'data.content');
+        if (typeof html === 'string' && html.trim()) {
+          code.value = html;
+          apiStatus.value = { type: 'ok', msg: `✓ 文章 #${id} 加载成功 · ${html.length} 字符` };
+          showToast(`文章 #${id} 已加载`, 'success');
+        } else {
+          apiStatus.value = { type: 'err', msg: `✗ 未找到 data.content 字段` };
+          showToast('内容字段为空或不存在', 'error');
+        }
+      } catch (e) {
+        apiStatus.value = { type: 'err', msg: `✗ ${e.message}` };
+        showToast('加载失败：' + e.message, 'error');
+      } finally {
+        apiFetching.value = false;
+        nextTick(() => setTimeout(runCode, 80));
+      }
+    }
+
+    onMounted(() => {
+      const params = new URLSearchParams(window.location.search);
+      const xlabId = params.get('xlab');
+      if (xlabId) {
+        fetchXlabArticle(xlabId);
+      } else {
+        nextTick(() => setTimeout(runCode, 80));
+      }
+    });
+
+    watch(activeTab, () => {
+      nextTick(() => setTimeout(runCode, 50));
+    });
+
+    return {
+      code, activeTab, device,
+      editor, previewFrame, lineNumbers,
+      cursorLine, cursorCol, lineCount, hasErrors, autoRunEnabled,
+      showExamples, toasts, examples,
+      apiUrl, apiMethod, apiHeaders, apiBody, apiFieldPath,
+      apiFetching, apiStatus, showHeaders,
+      runCode, onInput, syncScroll, updateCursor, onKeyDown,
+      formatCode, copyCode, clearCode, downloadHtml, openInNewTab,
+      loadExample, fetchFromApi,
+      startResize(e) {
+        // Minimal resize logic
+        const main = e.target.parentElement;
+        const editorPane = main.querySelector('.editor-pane');
+        const previewPane = main.querySelector('.preview-pane');
+        const startX = e.clientX;
+        const startEditorW = editorPane.offsetWidth;
+        const startPreviewW = previewPane.offsetWidth;
+        const total = startEditorW + startPreviewW;
+        function onMove(ev) {
+          const dx = ev.clientX - startX;
+          const newEW = Math.max(200, Math.min(total - 200, startEditorW + dx));
+          editorPane.style.flex = 'none';
+          editorPane.style.width = newEW + 'px';
+          previewPane.style.flex = '1';
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      }
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
