@@ -117,30 +117,38 @@ export default {
   overflow: auto;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: 16px;
 }
 
 .frame-desktop {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   border: none;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .frame-tablet {
   width: 768px;
-  height: 100%;
+  max-width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 600px;
   border: none;
   background: #fff;
   border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .frame-mobile {
   width: 375px;
-  height: 100%;
+  max-width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 600px;
   border: none;
   background: #fff;
   border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 </style>
