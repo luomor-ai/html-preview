@@ -64,7 +64,6 @@ export default {
 .sidebar {
   width: 220px;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;

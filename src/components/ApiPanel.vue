@@ -105,7 +105,7 @@ export default {
 
 <style scoped>
 .api-panel {
-  border-top: 1px solid var(--border);
+  width: 220px;
   padding: 12px;
   background: var(--bg-sidebar);
 }

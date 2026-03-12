@@ -14,25 +14,26 @@
     />
 
     <div class="main">
-      <!-- SIDEBAR -->
-      <Sidebar
-        @examples="showExamples = true"
-        @toggle-auto="autoRunEnabled = !autoRunEnabled"
-        :autoRunEnabled="autoRunEnabled"
-        @fetch-xlab="fetchXlabArticle"
-      />
+      <!-- SIDEBAR (包含 ApiPanel) -->
+      <div class="sidebar-container">
+        <Sidebar
+          @examples="showExamples = true"
+          @toggle-auto="autoRunEnabled = !autoRunEnabled"
+          :autoRunEnabled="autoRunEnabled"
+          @fetch-xlab="fetchXlabArticle"
+        />
 
-      <!-- API PANEL -->
-      <ApiPanel
-        v-model:url="apiUrl"
-        v-model:method="apiMethod"
-        v-model:headers="apiHeaders"
-        v-model:body="apiBody"
-        v-model:fieldPath="apiFieldPath"
-        :fetching="apiFetching"
-        :status="apiStatus"
-        @fetch="fetchFromApi"
-      />
+        <ApiPanel
+          v-model:url="apiUrl"
+          v-model:method="apiMethod"
+          v-model:headers="apiHeaders"
+          v-model:body="apiBody"
+          v-model:fieldPath="apiFieldPath"
+          :fetching="apiFetching"
+          :status="apiStatus"
+          @fetch="fetchFromApi"
+        />
+      </div>
 
       <!-- EDITOR PANE -->
       <EditorPane
@@ -191,6 +192,13 @@ export default {
   flex: 1;
   display: flex;
   overflow: hidden;
+}
+
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
 }
 
 .resize-handle {
