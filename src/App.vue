@@ -37,6 +37,7 @@
 
       <!-- EDITOR PANE -->
       <EditorPane
+        v-show="activeTab !== 'preview'"
         ref="editorPane"
         v-model:code="code"
         @run="runCode"
@@ -199,6 +200,13 @@ export default {
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
+}
+
+.editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .resize-handle {
